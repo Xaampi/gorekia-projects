@@ -9,7 +9,8 @@ export const RANGES = {
 };
 
 // Agrupa las sesiones en cubos diarios o semanales (semana de lunes a domingo).
-export function buildSeries(rangeKey, sessions) {
+// `buckets` son los totales (para las cifras de cabecera) y `lines` una serie por proyecto.
+export function buildSeries(rangeKey, sessions, projects) {
   const { n, unit } = RANGES[rangeKey];
   const today = D.startOfDay(new Date());
   const buckets = [];
@@ -22,6 +23,9 @@ export function buildSeries(rangeKey, sessions) {
     for (let i = n - 1; i >= 0; i--) { const s = D.addDays(monday, -7 * i); buckets.push(empty(s, D.addDays(s, 6))); }
   }
 
+  const lines = projects.map(p => ({ id: p.id, color: p.color, values: new Array(n).fill(0) }));
+  const lineById = new Map(lines.map(l => [l.id, l]));
+
   const first = buckets[0].start;
   const from = D.toKey(first);
   const to = D.toKey(buckets[n - 1].end);
@@ -29,13 +33,16 @@ export function buildSeries(rangeKey, sessions) {
   for (const s of sessions) {
     if (s.date < from || s.date > to) continue;
     const diff = Math.round((D.fromKey(s.date) - first) / 864e5);
-    const b = buckets[unit === 'day' ? diff : Math.floor(diff / 7)];
+    const i = unit === 'day' ? diff : Math.floor(diff / 7);
+    const b = buckets[i];
     if (!b) continue;
     b.hours += s.hours;
     b.count++;
     b.projects.add(s.projectId);
+    const l = lineById.get(s.projectId);
+    if (l) l.values[i] += s.hours;
   }
-  return { buckets, from, to };
+  return { buckets, lines, from, to };
 }
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -52,18 +59,26 @@ function niceMax(v) {
 }
 const fmtNum = v => (Number.isInteger(v) ? String(v) : v.toFixed(1));
 
-export function renderChart(host, buckets, rangeKey, sel, onSelect) {
+export function renderChart(host, { buckets, lines }, rangeKey, sel, onSelect) {
   host.textContent = '';
   const W = Math.max(host.clientWidth, 280), H = 220;
   const L = 8, R = 46, T = 14, B = 26;
   const iw = W - L - R, ih = H - T - B, n = buckets.length;
-  const max = niceMax(Math.max(0.5, ...buckets.map(b => b.hours)));
+  const max = niceMax(Math.max(0.5, ...lines.flatMap(l => l.values)));
   const x = i => L + (n === 1 ? iw / 2 : (i * iw) / (n - 1));
   const y = v => T + ih - (v / max) * ih;
 
   const svg = el('svg', {
-    viewBox: `0 0 ${W} ${H}`, class: 'chart-svg', role: 'img', 'aria-label': 'Horas dedicadas por periodo',
+    viewBox: `0 0 ${W} ${H}`, class: 'chart-svg', role: 'img', 'aria-label': 'Horas dedicadas por periodo y proyecto',
   }, host);
+
+  // Relleno degradado por proyecto: el color en la línea y casi transparente en la base.
+  const defs = el('defs', {}, svg);
+  lines.forEach((l, k) => {
+    const g = el('linearGradient', { id: `area-${k}`, x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    el('stop', { offset: '0%', 'stop-color': l.color, 'stop-opacity': 0.3 }, g);
+    el('stop', { offset: '100%', 'stop-color': l.color, 'stop-opacity': 0.02 }, g);
+  });
 
   [0, 0.5, 1].forEach(f => {
     const v = max * f;
@@ -71,11 +86,21 @@ export function renderChart(host, buckets, rangeKey, sel, onSelect) {
     el('text', { x: W - R + 8, y: y(v) + 4, class: 'ylab' }, svg).textContent = `${fmtNum(v)}h`;
   });
 
-  const pts = buckets.map((b, i) => [x(i), y(b.hours)]);
-  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
-  el('path', { d: `${line}L${x(n - 1).toFixed(1)},${y(0)}L${x(0).toFixed(1)},${y(0)}Z`, class: 'area' }, svg);
-  el('path', { d: line, class: 'line' }, svg);
-  if (n <= 14) pts.forEach(p => el('circle', { cx: p[0], cy: p[1], r: 4.5, class: 'pt' }, svg));
+  const paths = lines.map(l => l.values.map((v, i) => [x(i), y(v)]));
+  const toPath = pts => pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
+
+  lines.forEach((l, k) => {
+    if (!Math.max(...l.values)) return;
+    el('path', {
+      d: `${toPath(paths[k])}L${x(n - 1).toFixed(1)},${y(0)}L${x(0).toFixed(1)},${y(0)}Z`,
+      class: 'area', style: `fill:url(#area-${k})`,
+    }, svg);
+  });
+  lines.forEach((l, k) => el('path', { d: toPath(paths[k]), class: 'line', style: `stroke:${l.color}` }, svg));
+  if (n <= 14) {
+    lines.forEach((l, k) => paths[k].forEach(p =>
+      el('circle', { cx: p[0], cy: p[1], r: 4, class: 'pt', style: `stroke:${l.color}` }, svg)));
+  }
 
   let lastX = -99;
   buckets.forEach((b, i) => {
@@ -89,9 +114,8 @@ export function renderChart(host, buckets, rangeKey, sel, onSelect) {
     }
   });
 
-  const halo = el('circle', { r: 12, class: 'halo' }, svg);
   const cursor = el('line', { y1: T - 6, y2: y(0), class: 'cursor' }, svg);
-  const dot = el('circle', { r: 6, class: 'dot-sel' }, svg);
+  const dots = lines.map(l => el('circle', { r: 5.5, class: 'dot-sel', style: `fill:${l.color}` }, svg));
   let current = -1;
 
   function setSel(i, notify) {
@@ -99,7 +123,7 @@ export function renderChart(host, buckets, rangeKey, sel, onSelect) {
     current = i;
     cursor.setAttribute('x1', x(i));
     cursor.setAttribute('x2', x(i));
-    [halo, dot].forEach(c => { c.setAttribute('cx', x(i)); c.setAttribute('cy', y(buckets[i].hours)); });
+    dots.forEach((d, k) => { d.setAttribute('cx', x(i)); d.setAttribute('cy', y(lines[k].values[i])); });
     if (notify) onSelect(i);
   }
 

@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const TITLES = { progress: 'Progreso', activities: 'Actividades', add: 'Añadir' };
+const TITLES = { progress: 'Progreso', activities: 'Sesiones', add: 'Añadir' };
 const ui = { view: 'progress', range: '3M', filter: null, sel: null, series: null, limit: 60, lastProject: null };
 
 const passes = s => !ui.filter || ui.filter.has(s.projectId);
@@ -86,13 +86,14 @@ $('#filter-list').addEventListener('change', e => {
 
 function renderProgress() {
   const sessions = store.sessions().filter(passes);
-  const { buckets, from, to } = buildSeries(ui.range, sessions);
+  const scope = store.projects().filter(p => !ui.filter || ui.filter.has(p.id));
+  const data = buildSeries(ui.range, sessions, scope);
+  const { buckets, from, to } = data;
   ui.series = buckets;
   if (ui.sel == null || ui.sel >= buckets.length) ui.sel = buckets.length - 1;
-  renderChart($('#chart'), buckets, ui.range, ui.sel, i => { ui.sel = i; updateHeader(); });
+  renderChart($('#chart'), data, ui.range, ui.sel, i => { ui.sel = i; updateHeader(); });
   updateHeader();
 
-  const scope = store.projects().filter(p => !ui.filter || ui.filter.has(p.id));
   const rows = scope.map(p => {
     const mine = store.sessions().filter(s => s.projectId === p.id);
     return {
@@ -378,20 +379,36 @@ async function sendToAgent(text) {
   }
 }
 
-$('#voice-btn').addEventListener('click', () => {
+// La bola se mueve de forma orgánica mientras escucha y mientras el agente piensa.
+const orbBusy = on => $$('.orb').forEach(o => o.classList.toggle('thinking', on));
+let activeRec = null;
+
+function startVoice() {
+  if (activeRec) { activeRec.abort(); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return say('Este navegador no permite dictado por voz');
-  const btn = $('#voice-btn');
+  if (!SR) {
+    say('Este navegador no permite dictado por voz');
+    orbBusy(true);
+    setTimeout(() => orbBusy(false), 1800);
+    return;
+  }
   const rec = new SR();
   rec.lang = 'es-ES';
   rec.interimResults = false;
-  btn.classList.add('listening');
+  activeRec = rec;
+  let heard = false;
+  orbBusy(true);
   $('#voice-status').textContent = 'Escuchando…';
-  rec.onresult = e => sendToAgent(e.results[0][0].transcript);
-  rec.onerror = () => say('No he podido escucharte');
-  rec.onend = () => btn.classList.remove('listening');
+  rec.onresult = e => {
+    heard = true;
+    sendToAgent(e.results[0][0].transcript).finally(() => orbBusy(false));
+  };
+  rec.onerror = e => { if (e.error !== 'aborted') say('No he podido escucharte'); };
+  rec.onend = () => { activeRec = null; if (!heard) orbBusy(false); };
   rec.start();
-});
+}
+
+$$('.orb').forEach(o => o.addEventListener('click', startVoice));
 
 /* ---------- Arranque ---------- */
 
