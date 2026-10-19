@@ -88,9 +88,13 @@ function renderProgress() {
   const sessions = store.sessions().filter(passes);
   const scope = store.projects().filter(p => !ui.filter || ui.filter.has(p.id));
   const built = buildSeries(ui.range, sessions, scope);
-  // Una sola línea con la suma de horas de los proyectos seleccionados, en el rojo de Gorekia.
+  // Todos los proyectos: una sola línea con la suma, en el rojo de Gorekia.
+  // Filtro por proyecto(s): una línea por proyecto, cada una con su color.
+  const showingAll = scope.length === store.projects().length;
   const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#cc4a41';
-  const data = { ...built, lines: [{ id: 'total', color: accent, values: built.buckets.map(b => b.hours) }] };
+  const data = showingAll
+    ? { ...built, lines: [{ id: 'total', color: accent, values: built.buckets.map(b => b.hours) }] }
+    : built;
   const { buckets, from, to } = data;
   ui.series = buckets;
   if (ui.sel == null || ui.sel >= buckets.length) ui.sel = buckets.length - 1;
