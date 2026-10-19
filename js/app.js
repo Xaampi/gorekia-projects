@@ -42,7 +42,6 @@ function render() {
   $$('#ranges .pill').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.range === ui.range)));
   if (ui.view === 'progress') {
     renderProgress();
-    $('#ranges .pill[aria-pressed="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   } else if (ui.view === 'activities') renderActivities();
   else renderAdd();
 }
@@ -97,6 +96,7 @@ function renderProgress() {
     : built;
   const { buckets, from, to } = data;
   ui.series = buckets;
+  ui.byProject = built.lines.map(l => ({ p: scope.find(p => p.id === l.id), values: l.values }));
   if (ui.sel == null || ui.sel >= buckets.length) ui.sel = buckets.length - 1;
   renderChart($('#chart'), data, ui.range, ui.sel, i => { ui.sel = i; updateHeader(); });
   updateHeader();
@@ -123,6 +123,16 @@ function updateHeader() {
   $('#st-hours').textContent = D.fmtHours(b.hours);
   $('#st-count').textContent = b.count;
   $('#st-projects').textContent = b.projects.size;
+
+  // Desglose de horas por proyecto en el periodo seleccionado.
+  const parts = ui.byProject
+    .map(r => ({ p: r.p, h: r.values[ui.sel] }))
+    .filter(r => r.p && r.h > 0)
+    .sort((a, c) => c.h - a.h);
+  $('#period-breakdown').innerHTML = parts.length
+    ? parts.map(r => `<li><span class="dot" style="background:${esc(r.p.color)}"></span>
+        <div class="grow">${esc(r.p.name)}</div><div class="num">${D.fmtHours(r.h)}</div></li>`).join('')
+    : '<li class="muted">Sin horas en este periodo.</li>';
 }
 
 $('#ranges').addEventListener('click', e => {
@@ -131,6 +141,8 @@ $('#ranges').addEventListener('click', e => {
   ui.range = b.dataset.range;
   ui.sel = null;
   render();
+  // Solo al elegir un rango a mano: así el filtro no queda tapado al abrir la app.
+  $('#ranges .pill[aria-pressed="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
 });
 
 let resizeTimer;
