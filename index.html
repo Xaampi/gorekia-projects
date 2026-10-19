@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gorekia Projects</title>
+  <meta name="theme-color" content="#1f1e1d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Projects">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-view="progress">
+
+  <header class="topbar">
+    <div class="app">
+      <h1 id="title">Progreso</h1>
+      <div class="controls">
+        <button id="filter-btn" class="pill" type="button"><span id="filter-label">Todos los proyectos</span> ▾</button>
+        <div class="ranges" id="ranges" role="group" aria-label="Rango de tiempo">
+          <button class="pill" data-range="7D" type="button">7D</button>
+          <button class="pill" data-range="1M" type="button">1M</button>
+          <button class="pill" data-range="3M" type="button">3M</button>
+          <button class="pill" data-range="6M" type="button">6M</button>
+          <button class="pill" data-range="1A" type="button">1A</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app">
+
+    <section id="view-progress" class="view">
+      <h2 id="period-label" class="period"></h2>
+      <dl class="stats">
+        <div><dt>Horas</dt><dd id="st-hours">0h 0m</dd></div>
+        <div><dt>Sesiones</dt><dd id="st-count">0</dd></div>
+        <div><dt>Proyectos</dt><dd id="st-projects">0</dd></div>
+      </dl>
+      <div id="chart" class="chart"></div>
+      <h3 class="section">Por proyecto</h3>
+      <ul id="project-totals" class="list"></ul>
+    </section>
+
+    <section id="view-activities" class="view" hidden>
+      <div id="activity-list"></div>
+      <button id="more-btn" class="btn ghost" type="button" hidden>Mostrar más</button>
+    </section>
+
+    <section id="view-add" class="view" hidden>
+      <div class="voice">
+        <button id="voice-btn" class="orb" type="button" aria-label="Agente de voz"></button>
+        <p id="voice-status" class="muted">Pulsa y di: «añade 2 horas a un proyecto…»</p>
+      </div>
+
+      <form id="session-form" class="card" autocomplete="off">
+        <h3 id="session-form-title">Nueva sesión</h3>
+        <input type="hidden" name="sid">
+        <label>Proyecto <select name="project" required></select></label>
+        <label>Título <input name="title" required maxlength="80"></label>
+        <label>Resumen <textarea name="summary" rows="3" maxlength="600"></textarea></label>
+        <div class="row">
+          <label>Fecha <input type="date" name="date" required></label>
+          <label>Horas <input type="number" name="hours" step="0.25" min="0.25" max="24" inputmode="decimal" required></label>
+        </div>
+        <div class="quick" id="quick-hours">
+          <button class="pill" type="button" data-h="0.5">0,5h</button>
+          <button class="pill" type="button" data-h="1">1h</button>
+          <button class="pill" type="button" data-h="2">2h</button>
+          <button class="pill" type="button" data-h="4">4h</button>
+        </div>
+        <div class="row actions">
+          <button class="btn primary" type="submit">Guardar sesión</button>
+          <button id="session-cancel" class="btn ghost" type="button" hidden>Cancelar</button>
+          <button id="session-delete" class="btn danger" type="button" hidden>Eliminar</button>
+        </div>
+      </form>
+
+      <form id="project-form" class="card" autocomplete="off">
+        <h3>Nuevo proyecto</h3>
+        <label>Nombre <input name="name" required maxlength="40"></label>
+        <div id="color-swatches" class="swatches"></div>
+        <button class="btn primary" type="submit">Crear proyecto</button>
+      </form>
+
+      <section class="card">
+        <h3>Recordatorios</h3>
+        <form id="reminder-form" class="reminder-form" autocomplete="off">
+          <input name="text" placeholder="Qué recordar" required maxlength="120">
+          <input type="datetime-local" name="at" required>
+          <button class="btn primary" type="submit">Añadir</button>
+        </form>
+        <ul id="reminder-list" class="list"></ul>
+      </section>
+
+      <section class="card" id="demo-card" hidden>
+        <h3>Datos de ejemplo</h3>
+        <p class="muted">Hay datos demo para ver la gráfica. Bórralos cuando empieces a registrar los reales.</p>
+        <button id="clear-demo" class="btn danger" type="button">Borrar datos demo</button>
+      </section>
+    </section>
+
+  </main>
+
+  <nav class="nav" aria-label="Pantallas">
+    <button data-view="progress" type="button">
+      <svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-8 4 5"/><path d="M3 21h18"/></svg>Progreso
+    </button>
+    <button data-view="activities" type="button">
+      <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>Actividades
+    </button>
+    <button data-view="add" type="button">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Añadir
+    </button>
+  </nav>
+
+  <dialog id="filter-dialog">
+    <form method="dialog">
+      <h3>Proyectos</h3>
+      <div id="filter-list"></div>
+      <button class="btn primary" type="submit">Listo</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
