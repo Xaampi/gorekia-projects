@@ -323,7 +323,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) chec
 
 /* ---------- Agente de voz ---------- */
 
-const say = msg => { $('#voice-status').textContent = msg; toast(msg); };
+const say = msg => toast(msg);
 
 function findProject(ref) {
   if (!ref) return null;
@@ -398,7 +398,7 @@ function startVoice() {
   activeRec = rec;
   let heard = false;
   orbBusy(true);
-  $('#voice-status').textContent = 'Escuchando…';
+  toast('Escuchando…');
   rec.onresult = e => {
     heard = true;
     sendToAgent(e.results[0][0].transcript).finally(() => orbBusy(false));
