@@ -119,7 +119,7 @@ function renderProgress() {
 
 function updateHeader() {
   const b = ui.series[ui.sel];
-  $('#period-label').textContent = D.fmtRange(b.start, b.end);
+  $('#period-label').textContent = ui.range === '1A' ? D.fmtMonth(b.start) : D.fmtRange(b.start, b.end);
   $('#st-hours').textContent = D.fmtHours(b.hours);
   $('#st-count').textContent = b.count;
   $('#st-projects').textContent = b.projects.size;

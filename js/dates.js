@@ -10,6 +10,8 @@ export const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() 
 export const mondayOf = d => addDays(startOfDay(d), -((d.getDay() + 6) % 7));
 
 export const mes = d => MES[d.getMonth()];
+const MES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+export const fmtMonth = d => `${MES_LARGO[d.getMonth()]} ${d.getFullYear()}`;
 export const fmtShort = d => `${d.getDate()} ${MES[d.getMonth()]}`;
 export const fmtDay = d => `${DIA[d.getDay()]} ${d.getDate()} ${MES[d.getMonth()]} ${d.getFullYear()}`;
 export const fmtRange = (a, b) =>

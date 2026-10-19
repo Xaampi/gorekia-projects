@@ -5,10 +5,10 @@ export const RANGES = {
   '1M': { n: 30, unit: 'day' },
   '3M': { n: 13, unit: 'week' },
   '6M': { n: 26, unit: 'week' },
-  '1A': { n: 52, unit: 'week' },
+  '1A': { n: 12, unit: 'month' },
 };
 
-// Agrupa las sesiones en cubos diarios o semanales (semana de lunes a domingo).
+// Agrupa las sesiones en cubos diarios, semanales (lunes a domingo) o mensuales.
 // `buckets` son los totales (para las cifras de cabecera) y `lines` una serie por proyecto.
 export function buildSeries(rangeKey, sessions, projects) {
   const { n, unit } = RANGES[rangeKey];
@@ -18,6 +18,11 @@ export function buildSeries(rangeKey, sessions, projects) {
 
   if (unit === 'day') {
     for (let i = n - 1; i >= 0; i--) { const d = D.addDays(today, -i); buckets.push(empty(d, d)); }
+  } else if (unit === 'month') {
+    for (let i = n - 1; i >= 0; i--) {
+      const s = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      buckets.push(empty(s, new Date(s.getFullYear(), s.getMonth() + 1, 0)));
+    }
   } else {
     const monday = D.mondayOf(today);
     for (let i = n - 1; i >= 0; i--) { const s = D.addDays(monday, -7 * i); buckets.push(empty(s, D.addDays(s, 6))); }
@@ -32,8 +37,11 @@ export function buildSeries(rangeKey, sessions, projects) {
 
   for (const s of sessions) {
     if (s.date < from || s.date > to) continue;
-    const diff = Math.round((D.fromKey(s.date) - first) / 864e5);
-    const i = unit === 'day' ? diff : Math.floor(diff / 7);
+    const day = D.fromKey(s.date);
+    const diff = Math.round((day - first) / 864e5);
+    const i = unit === 'day' ? diff
+      : unit === 'month' ? (day.getFullYear() - first.getFullYear()) * 12 + day.getMonth() - first.getMonth()
+      : Math.floor(diff / 7);
     const b = buckets[i];
     if (!b) continue;
     b.hours += s.hours;
@@ -62,7 +70,7 @@ const fmtNum = v => (Number.isInteger(v) ? String(v) : v.toFixed(1));
 export function renderChart(host, { buckets, lines }, rangeKey, sel, onSelect) {
   host.textContent = '';
   const W = Math.max(host.clientWidth, 280), H = 220;
-  const L = 8, R = 46, T = 14, B = 26;
+  const L = rangeKey === '1A' ? 18 : 8, R = 46, T = 14, B = 26;
   const iw = W - L - R, ih = H - T - B, n = buckets.length;
   const max = niceMax(Math.max(0.5, ...lines.flatMap(l => l.values)));
   const x = i => L + (n === 1 ? iw / 2 : (i * iw) / (n - 1));
@@ -97,22 +105,31 @@ export function renderChart(host, { buckets, lines }, rangeKey, sel, onSelect) {
     }, svg);
   });
   lines.forEach((l, k) => el('path', { d: toPath(paths[k]), class: 'line', style: `stroke:${l.color}` }, svg));
-  if (n <= 14) {
+  if (n <= 26) {
+    const r = n <= 14 ? 4 : 3.2;
     lines.forEach((l, k) => paths[k].forEach(p =>
-      el('circle', { cx: p[0], cy: p[1], r: 4, class: 'pt', style: `stroke:${l.color}` }, svg)));
+      el('circle', { cx: p[0], cy: p[1], r, class: 'pt', style: `stroke:${l.color}` }, svg)));
   }
 
-  let lastX = -99;
+  // Etiquetas del eje X: si dos chocan, el primer cubo cede su sitio (suele ser un mes a medias).
+  const monthly = rangeKey === '1A';
+  const minGap = monthly ? 26 : 38;
+  const labels = [];
   buckets.forEach((b, i) => {
     let txt = null;
     if (rangeKey === '7D') txt = D.DIA[b.start.getDay()];
+    else if (monthly) txt = D.mes(b.start);
     else if (rangeKey === '1M') { if ((n - 1 - i) % 7 === 0) txt = D.fmtShort(b.start); }
     else if (i === 0 || b.start.getMonth() !== buckets[i - 1].start.getMonth()) txt = D.mes(b.start);
-    if (txt && x(i) - lastX >= 38) {
-      lastX = x(i);
-      el('text', { x: x(i), y: H - 6, class: i === 0 ? 'xlab first' : 'xlab' }, svg).textContent = txt;
+    if (!txt) return;
+    const last = labels[labels.length - 1];
+    if (last && x(i) - x(last.i) < minGap) {
+      if (last.i === 0 && rangeKey !== '7D') labels.pop(); else return;
     }
+    labels.push({ i, txt });
   });
+  labels.forEach(({ i, txt }) =>
+    el('text', { x: x(i), y: H - 6, class: i === 0 && !monthly ? 'xlab first' : 'xlab' }, svg).textContent = txt);
 
   const cursor = el('line', { y1: T - 6, y2: y(0), class: 'cursor' }, svg);
   const dots = lines.map(l => el('circle', { r: 5.5, class: 'dot-sel', style: `fill:${l.color}` }, svg));
