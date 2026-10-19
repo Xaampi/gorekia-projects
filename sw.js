@@ -1,4 +1,4 @@
-const CACHE = 'gorekia-projects-v3';
+const CACHE = 'gorekia-projects-v4';
 const ASSETS = [
   './', 'index.html', 'css/styles.css',
   'js/app.js', 'js/store.js', 'js/chart.js', 'js/dates.js', 'js/config.js',

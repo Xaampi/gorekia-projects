@@ -42,7 +42,7 @@ function render() {
   $$('#ranges .pill').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.range === ui.range)));
   if (ui.view === 'progress') {
     renderProgress();
-    $('#ranges .pill[aria-pressed="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    $('#ranges .pill[aria-pressed="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   } else if (ui.view === 'activities') renderActivities();
   else renderAdd();
 }
@@ -87,7 +87,10 @@ $('#filter-list').addEventListener('change', e => {
 function renderProgress() {
   const sessions = store.sessions().filter(passes);
   const scope = store.projects().filter(p => !ui.filter || ui.filter.has(p.id));
-  const data = buildSeries(ui.range, sessions, scope);
+  const built = buildSeries(ui.range, sessions, scope);
+  // Una sola línea con la suma de horas de los proyectos seleccionados, en el rojo de Gorekia.
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#cc4a41';
+  const data = { ...built, lines: [{ id: 'total', color: accent, values: built.buckets.map(b => b.hours) }] };
   const { buckets, from, to } = data;
   ui.series = buckets;
   if (ui.sel == null || ui.sel >= buckets.length) ui.sel = buckets.length - 1;
