@@ -401,9 +401,12 @@ async function sendToAgent(text) {
 // La bola se mueve de forma orgánica mientras escucha y mientras el agente piensa.
 const orbBusy = on => $$('.orb').forEach(o => o.classList.toggle('thinking', on));
 let activeRec = null;
+let processing = false;
 
+// Un toque empieza a escuchar; otro toque deja de escuchar y procesa lo que se haya dicho.
 function startVoice() {
-  if (activeRec) { activeRec.abort(); return; }
+  if (processing) return;
+  if (activeRec) { toast('Procesando…'); activeRec.stop(); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) {
     say('Este navegador no permite dictado por voz');
@@ -417,12 +420,13 @@ function startVoice() {
   activeRec = rec;
   let heard = false;
   orbBusy(true);
-  toast('Escuchando…');
+  toast('Escuchando… toca la bola para parar');
   rec.onresult = e => {
     heard = true;
-    sendToAgent(e.results[0][0].transcript).finally(() => orbBusy(false));
+    processing = true;
+    sendToAgent(e.results[0][0].transcript).finally(() => { processing = false; orbBusy(false); });
   };
-  rec.onerror = e => { if (e.error !== 'aborted') say('No he podido escucharte'); };
+  rec.onerror = e => { if (e.error === 'no-speech') say('No he oído nada'); else if (e.error !== 'aborted') say('No he podido escucharte'); };
   rec.onend = () => { activeRec = null; if (!heard) orbBusy(false); };
   rec.start();
 }
