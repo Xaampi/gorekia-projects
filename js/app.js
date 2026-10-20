@@ -450,7 +450,8 @@ async function sendToAgent(text) {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Gorekia-Token': store.getToken() }, body: JSON.stringify({ text, context }),
     });
     if (!res.ok) throw new Error(res.status);
-    await applyIntent(await res.json());
+    const out = await res.json();
+    await applyIntent(Array.isArray(out) ? out[0] : out);
   } catch {
     say('No he podido contactar con el agente');
   }
