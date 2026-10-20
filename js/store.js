@@ -2,17 +2,26 @@ import { API_URL } from './config.js';
 
 // Capa de datos. La fuente de verdad es Postgres, a través del webhook de n8n.
 // En el móvil se guarda una copia local para abrir al instante y poder ver lo último sin conexión.
-// Paleta de proyectos, ordenada por color (sin rojo: ese es el color de Gorekia). Todos los pares
-// se distinguen bien entre sí (distancia de color CIE Lab ≥ 18) y sobre el fondo oscuro.
+// Paleta de proyectos: 12 familias de color en orden de arcoíris (rojo, naranja, dorado, lima, verde,
+// menta, turquesa, azul cielo, azul, violeta, magenta, rosa), cada una en tono claro, medio y oscuro,
+// más tres neutros. Todos los pares se distinguen bien (distancia CIE Lab ≥ 15) y se leen sobre el fondo.
 export const COLOR_OPTIONS = [
-  { name: 'Naranja', hex: '#ea8a53' }, { name: 'Dorado', hex: '#e3b945' }, { name: 'Amarillo', hex: '#d3dd40' },
-  { name: 'Lima', hex: '#8ad04e' }, { name: 'Verde', hex: '#59c567' }, { name: 'Menta', hex: '#5ccc9f' },
-  { name: 'Turquesa', hex: '#38c7c2' }, { name: 'Cian', hex: '#47b8e1' }, { name: 'Azul cielo', hex: '#6ca9ef' },
-  { name: 'Azul', hex: '#5376ea' }, { name: 'Violeta', hex: '#ac8be4' }, { name: 'Púrpura', hex: '#aa5bc2' },
-  { name: 'Magenta', hex: '#dc6ac5' }, { name: 'Rosa', hex: '#f292bb' }, { name: 'Marrón', hex: '#a68468' },
-  { name: 'Gris azulado', hex: '#7a8aa0' }, { name: 'Gris', hex: '#9a9a92' },
+  { name: 'Rojo claro', hex: '#f1aaa7' }, { name: 'Rojo', hex: '#d6605c' }, { name: 'Rojo oscuro', hex: '#9b3431' },
+  { name: 'Naranja claro', hex: '#f1c5a7' }, { name: 'Naranja', hex: '#d68d5c' }, { name: 'Naranja oscuro', hex: '#9b5b31' },
+  { name: 'Dorado claro', hex: '#f1e0a7' }, { name: 'Dorado', hex: '#d6ba5c' }, { name: 'Dorado oscuro', hex: '#9b8231' },
+  { name: 'Lima claro', hex: '#d8f1a7' }, { name: 'Lima', hex: '#add65c' }, { name: 'Lima oscuro', hex: '#789b31' },
+  { name: 'Verde claro', hex: '#a7f1b4' }, { name: 'Verde', hex: '#5cd670' }, { name: 'Verde oscuro', hex: '#319b43' },
+  { name: 'Menta claro', hex: '#a7f1d8' }, { name: 'Menta', hex: '#5cd6ad' }, { name: 'Menta oscuro', hex: '#319b78' },
+  { name: 'Turquesa claro', hex: '#a7eef1' }, { name: 'Turquesa', hex: '#5cd2d6' }, { name: 'Turquesa oscuro', hex: '#31989b' },
+  { name: 'Azul cielo claro', hex: '#a7d3f1' }, { name: 'Azul cielo', hex: '#5ca5d6' }, { name: 'Azul cielo oscuro', hex: '#31719b' },
+  { name: 'Azul claro', hex: '#a7b8f1' }, { name: 'Azul', hex: '#5c78d6' }, { name: 'Azul oscuro', hex: '#314a9b' },
+  { name: 'Violeta claro', hex: '#c2a7f1' }, { name: 'Violeta', hex: '#895cd6' }, { name: 'Violeta oscuro', hex: '#58319b' },
+  { name: 'Magenta claro', hex: '#f1a7eb' }, { name: 'Magenta', hex: '#d65ccc' }, { name: 'Magenta oscuro', hex: '#9b3192' },
+  { name: 'Rosa claro', hex: '#f1a7c5' }, { name: 'Rosa', hex: '#d65c8d' }, { name: 'Rosa oscuro', hex: '#9b315b' },
+  { name: 'Marrón', hex: '#a68468' }, { name: 'Gris azulado', hex: '#7a8aa0' }, { name: 'Gris', hex: '#9a9a92' },
 ];
 export const COLORS = COLOR_OPTIONS.map(c => c.hex);
+export const DEFAULT_COLOR = COLOR_OPTIONS.find(c => c.name === 'Azul cielo')?.hex ?? COLOR_OPTIONS[0].hex;
 
 const CACHE_KEY = 'gorekia-projects:cache:v2';
 const TOKEN_KEY = 'gorekia-projects:token';

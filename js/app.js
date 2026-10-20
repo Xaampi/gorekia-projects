@@ -241,6 +241,7 @@ function renderAdd() {
   fillProjectSelect();
   renderReminders();
   if (!$('#session-form').elements.date.value) resetSessionForm();
+  showCheckedSwatch();
 }
 
 function fillProjectSelect(selected) {
@@ -321,7 +322,14 @@ $('#quick-hours').addEventListener('click', e => {
 });
 
 $('#color-swatches').innerHTML = store.COLOR_OPTIONS.map((c, i) =>
-  `<label class="swatch" style="--c:${c.hex}" title="${esc(c.name)}"><input type="radio" name="color" value="${c.hex}" aria-label="${esc(c.name)}" ${i === 0 ? 'checked' : ''}><span></span></label>`).join('');
+  `<label class="swatch" style="--c:${c.hex}" title="${esc(c.name)}"><input type="radio" name="color" value="${c.hex}" aria-label="${esc(c.name)}" ${c.hex === store.DEFAULT_COLOR ? 'checked' : ''}><span></span></label>`).join('');
+
+// Deja a la vista el color marcado (si no, con tantos colores quedaría fuera de la fila).
+function showCheckedSwatch() {
+  const box = $('#color-swatches');
+  const on = box.querySelector('input:checked')?.parentElement;
+  if (on && box.clientWidth) box.scrollLeft = on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2;
+}
 
 $('#project-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -336,6 +344,7 @@ $('#project-form').addEventListener('submit', async e => {
   ui.lastProject = p.id;
   form.reset();
   fillProjectSelect(p.id);
+  showCheckedSwatch();
   toast(`Proyecto «${p.name}» creado`);
 });
 
