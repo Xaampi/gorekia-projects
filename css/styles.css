@@ -196,6 +196,8 @@ dialog h3 { margin-bottom: 10px; }
 .check { display: flex; align-items: center; gap: 12px; padding: 10px 0; margin: 0; font-size: 1rem; color: var(--ink); border-bottom: 1px solid var(--line); }
 .check input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
 dialog .btn { width: 100%; margin-top: 14px; }
+#token-dialog p { margin-bottom: 14px; }
+.token-error { color: var(--danger); }
 
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%); z-index: 10; max-width: 90%;

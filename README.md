@@ -19,10 +19,10 @@ Sitio estático, sin build: arrastra la carpeta a Netlify o conecta el repo con 
 
 ## Estructura
 
-- `js/store.js`: datos (hoy en localStorage; es el único archivo a cambiar para pasar a API/Postgres).
+- `js/store.js`: datos. Lee y escribe en Postgres a través del webhook de n8n (`API_URL`) y guarda una copia local para abrir rápido y ver lo último sin conexión. El token de acceso lo pide la app la primera vez y se guarda solo en el móvil (nunca en el repo).
 - `js/chart.js`: agrupación por día/semana y gráfica SVG.
 - `js/app.js`: pantallas, formularios, recordatorios y agente de voz.
-- `js/config.js`: `VOICE_WEBHOOK_URL` del webhook de n8n para el agente de voz.
+- `js/config.js`: `API_URL` (webhook de datos) y `VOICE_WEBHOOK_URL` (agente de voz) de n8n. Contrato de la API: `POST { action, ...datos }` con la cabecera `X-Gorekia-Token`; acciones `list_all`, `add_project`, `delete_project`, `add_session`, `update_session`, `delete_session`, `add_reminder`, `toggle_reminder`, `delete_reminder`.
 
 ## Contrato del webhook de voz
 

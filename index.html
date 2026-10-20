@@ -93,12 +93,6 @@
         </form>
         <ul id="reminder-list" class="list"></ul>
       </section>
-
-      <section class="card" id="demo-card" hidden>
-        <h3>Datos de ejemplo</h3>
-        <p class="muted">Hay datos demo para ver la gráfica. Bórralos cuando empieces a registrar los reales.</p>
-        <button id="clear-demo" class="btn danger" type="button">Borrar datos demo</button>
-      </section>
     </section>
 
   </main>
@@ -122,6 +116,16 @@
       <h3>Proyectos</h3>
       <div id="filter-list"></div>
       <button class="btn primary" type="submit">Listo</button>
+    </form>
+  </dialog>
+
+  <dialog id="token-dialog">
+    <form id="token-form" method="dialog" autocomplete="on">
+      <h3>Acceso</h3>
+      <p class="muted">Introduce la contraseña de Gorekia Projects. Solo te la pedirá la primera vez en este móvil.</p>
+      <label>Contraseña <input type="password" name="token" autocomplete="current-password" required></label>
+      <p id="token-error" class="muted token-error" hidden></p>
+      <button class="btn primary" type="submit">Entrar</button>
     </form>
   </dialog>
 

@@ -23,6 +23,58 @@ function toast(msg) {
   toastTimer = setTimeout(() => { t.hidden = true; }, 2800);
 }
 
+// Ejecuta una operación que escribe en la API. Devuelve true si salió bien; si no, avisa y devuelve false.
+async function act(fn, failMsg = 'No se ha podido guardar. Revisa la conexión') {
+  try { await fn(); return true; } catch (e) {
+    if (e instanceof store.AuthError) { await askToken('Contraseña incorrecta'); toast('Vuelve a intentarlo'); }
+    else toast(failMsg);
+    return false;
+  }
+}
+
+/* ---------- Acceso (contraseña compartida) ---------- */
+
+function askToken(error) {
+  const dlg = $('#token-dialog');
+  const form = $('#token-form');
+  $('#token-error').hidden = !error;
+  $('#token-error').textContent = error ?? '';
+  form.reset();
+  if (!dlg.open) dlg.showModal();
+  return new Promise(resolve => {
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const v = form.elements.token.value.trim();
+      if (!v) return;
+      store.setToken(v);
+      dlg.close();
+      resolve();
+    }, { once: true });
+  });
+}
+$('#token-dialog').addEventListener('cancel', e => e.preventDefault());
+
+// Descarga los datos de la API. Si falla por red, se queda con la copia local.
+let syncing = false;
+async function sync(silent = true) {
+  if (syncing) return;
+  syncing = true;
+  try {
+    await store.refresh();
+    render();
+  } catch (e) {
+    if (e instanceof store.AuthError) {
+      store.clearToken();
+      syncing = false;
+      await askToken('Contraseña incorrecta');
+      return sync(silent);
+    }
+    if (!silent) toast('Sin conexión: se muestran los últimos datos guardados');
+  } finally {
+    syncing = false;
+  }
+}
+
 /* ---------- Navegación ---------- */
 
 function setView(v) {
@@ -188,7 +240,6 @@ $('#more-btn').addEventListener('click', () => { ui.limit += 60; renderActivitie
 function renderAdd() {
   fillProjectSelect();
   renderReminders();
-  $('#demo-card').hidden = !store.hasDemo();
   if (!$('#session-form').elements.date.value) resetSessionForm();
 }
 
@@ -229,7 +280,7 @@ function startEdit(id) {
   $('#session-delete').hidden = false;
 }
 
-$('#session-form').addEventListener('submit', e => {
+$('#session-form').addEventListener('submit', async e => {
   e.preventDefault();
   const el = e.target.elements;
   if (!el.project.value) return toast('Crea un proyecto primero');
@@ -241,7 +292,11 @@ $('#session-form').addEventListener('submit', e => {
     hours: parseFloat(el.hours.value),
   };
   if (!(data.hours > 0)) return toast('Indica las horas');
-  if (el.sid.value) store.updateSession(el.sid.value, data); else store.addSession(data);
+  const btn = e.submitter;
+  if (btn) btn.disabled = true;
+  const ok = await act(() => (el.sid.value ? store.updateSession(el.sid.value, data) : store.addSession(data)));
+  if (btn) btn.disabled = false;
+  if (!ok) return;
   ui.lastProject = data.projectId;
   ui.sel = null;
   toast(`Sesión guardada · ${D.fmtHours(data.hours)}`);
@@ -250,10 +305,10 @@ $('#session-form').addEventListener('submit', e => {
 });
 
 $('#session-cancel').addEventListener('click', () => { resetSessionForm(); setView('activities'); });
-$('#session-delete').addEventListener('click', () => {
+$('#session-delete').addEventListener('click', async () => {
   const id = $('#session-form').elements.sid.value;
   if (!id || !confirm('¿Eliminar esta sesión?')) return;
-  store.deleteSession(id);
+  if (!await act(() => store.deleteSession(id), 'No se ha podido eliminar. Revisa la conexión')) return;
   ui.sel = null;
   resetSessionForm();
   toast('Sesión eliminada');
@@ -268,23 +323,20 @@ $('#quick-hours').addEventListener('click', e => {
 $('#color-swatches').innerHTML = store.COLORS.map((c, i) =>
   `<label class="swatch" style="--c:${c}"><input type="radio" name="color" value="${c}" ${i === 0 ? 'checked' : ''}><span></span></label>`).join('');
 
-$('#project-form').addEventListener('submit', e => {
+$('#project-form').addEventListener('submit', async e => {
   e.preventDefault();
-  const el = e.target.elements;
-  const p = store.addProject(el.name.value, el.color.value);
+  const form = e.target;
+  const el = form.elements;
+  const btn = e.submitter;
+  if (btn) btn.disabled = true;
+  let p;
+  const ok = await act(async () => { p = await store.addProject(el.name.value, el.color.value); });
+  if (btn) btn.disabled = false;
+  if (!ok) return;
   ui.lastProject = p.id;
-  e.target.reset();
+  form.reset();
   fillProjectSelect(p.id);
   toast(`Proyecto «${p.name}» creado`);
-});
-
-$('#clear-demo').addEventListener('click', () => {
-  if (!confirm('¿Borrar todos los datos de ejemplo?')) return;
-  store.clearDemo();
-  ui.filter = null;
-  ui.sel = null;
-  render();
-  toast('Datos demo borrados');
 });
 
 /* ---------- Recordatorios ---------- */
@@ -298,20 +350,26 @@ function renderReminders() {
     : '<li class="muted">Sin recordatorios</li>';
 }
 
-$('#reminder-form').addEventListener('submit', e => {
+$('#reminder-form').addEventListener('submit', async e => {
   e.preventDefault();
-  const el = e.target.elements;
-  store.addReminder(el.text.value, el.at.value);
-  e.target.reset();
+  const form = e.target;
+  const el = form.elements;
+  const btn = e.submitter;
+  if (btn) btn.disabled = true;
+  const ok = await act(() => store.addReminder(el.text.value, el.at.value));
+  if (btn) btn.disabled = false;
+  if (!ok) return;
+  form.reset();
   renderReminders();
   if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
 });
 
-$('#reminder-list').addEventListener('click', e => {
+$('#reminder-list').addEventListener('click', async e => {
   const li = e.target.closest('.rem');
   if (!li) return;
-  if (e.target.matches('input[type="checkbox"]')) store.updateReminder(li.dataset.id, { done: e.target.checked });
-  else if (e.target.matches('.x')) store.deleteReminder(li.dataset.id);
+  const id = li.dataset.id;
+  if (e.target.matches('input[type="checkbox"]')) await act(() => store.setReminderDone(id, e.target.checked));
+  else if (e.target.matches('.x')) await act(() => store.deleteReminder(id));
   else return;
   renderReminders();
 });
@@ -329,8 +387,8 @@ function checkReminders() {
   const now = Date.now();
   let changed = false;
   for (const r of store.reminders()) {
-    if (!r.done && !r.notified && new Date(r.at).getTime() <= now) {
-      store.updateReminder(r.id, { notified: true });
+    if (!r.done && !store.wasNotified(r.id) && new Date(r.at).getTime() <= now) {
+      store.markNotified(r.id);
       notify(r.text);
       changed = true;
     }
@@ -352,7 +410,7 @@ function findProject(ref) {
 }
 
 // El webhook solo clasifica la intención; la app ejecuta la acción.
-function applyIntent(out) {
+async function applyIntent(out) {
   const d = out?.data ?? {};
   switch (out?.intent) {
     case 'create_session': {
@@ -360,21 +418,21 @@ function applyIntent(out) {
       const hours = parseFloat(d.hours);
       if (!p) return say('No encuentro ese proyecto');
       if (!(hours > 0)) return say('Faltan las horas');
-      store.addSession({
+      if (!await act(() => store.addSession({
         projectId: p.id, title: d.title || 'Sesión', summary: d.summary || '',
         date: /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? d.date : D.toKey(new Date()), hours,
-      });
+      }))) return;
       say(out.reply || 'Sesión creada');
       break;
     }
     case 'create_project':
       if (!d.name) return say('Falta el nombre del proyecto');
-      store.addProject(d.name, store.COLORS[store.projects().length % store.COLORS.length]);
+      if (!await act(() => store.addProject(d.name, store.COLORS[store.projects().length % store.COLORS.length]))) return;
       say(out.reply || 'Proyecto creado');
       break;
     case 'create_reminder':
       if (!d.text || !d.at) return say('Faltan el texto o la hora');
-      store.addReminder(d.text, d.at);
+      if (!await act(() => store.addReminder(d.text, d.at))) return;
       say(out.reply || 'Recordatorio creado');
       break;
     default:
@@ -389,10 +447,10 @@ async function sendToAgent(text) {
   try {
     const context = { today: D.toKey(new Date()), projects: store.projects().map(p => ({ id: p.id, name: p.name })) };
     const res = await fetch(VOICE_WEBHOOK_URL, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, context }),
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Gorekia-Token': store.getToken() }, body: JSON.stringify({ text, context }),
     });
     if (!res.ok) throw new Error(res.status);
-    applyIntent(await res.json());
+    await applyIntent(await res.json());
   } catch {
     say('No he podido contactar con el agente');
   }
@@ -437,6 +495,12 @@ $$('.orb').forEach(o => o.addEventListener('click', startVoice));
 
 $$('.nav button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
 setView('progress');
-checkReminders();
+(async () => {
+  if (!store.hasToken()) await askToken();
+  await sync(false);
+  checkReminders();
+})();
+// Al volver a la app, trae lo que haya añadido la otra persona.
+document.addEventListener('visibilitychange', () => { if (!document.hidden && store.hasToken()) sync(true); });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
