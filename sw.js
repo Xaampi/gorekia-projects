@@ -1,8 +1,8 @@
-const CACHE = 'gorekia-projects-v12';
+const CACHE = 'gorekia-projects-v13';
 const ASSETS = [
   './', 'index.html', 'css/styles.css',
   'js/app.js', 'js/store.js', 'js/chart.js', 'js/dates.js', 'js/config.js',
-  'manifest.webmanifest', 'assets/icon.svg', 'assets/icon-192.png', 'assets/icon-512.png',
+  'manifest.webmanifest', 'assets/icon.svg', 'assets/icon-192.png', 'assets/icon-512.png', 'assets/apple-touch-icon.png', 'assets/icon-maskable-512.png',
   'assets/fonts/inter-latin-wght-normal.woff2', 'assets/fonts/inter-latin-ext-wght-normal.woff2',
 ];
 
