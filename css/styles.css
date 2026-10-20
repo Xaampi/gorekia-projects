@@ -159,10 +159,16 @@ textarea { resize: vertical; }
 .btn.danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
 #more-btn { display: block; margin: 8px auto 0; }
 
-.swatches { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-.swatch { margin: 0; }
+.swatches {
+  display: flex; gap: 12px; margin: 0 -16px 14px; padding: 6px 44px 6px 16px;
+  overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+}
+.swatches::-webkit-scrollbar { display: none; }
+.swatch { margin: 0; flex: none; scroll-snap-align: start; }
 .swatch input { position: absolute; opacity: 0; width: 0; height: 0; }
-.swatch span { display: block; width: 30px; height: 30px; border-radius: 50%; background: var(--c); border: 3px solid var(--card); }
+.swatch span { display: block; width: 32px; height: 32px; border-radius: 50%; background: var(--c); border: 3px solid var(--card); cursor: pointer; }
 .swatch input:checked + span { outline: 2px solid var(--c); }
 .swatch input:focus-visible + span { outline: 2px solid var(--ink); }
 

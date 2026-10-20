@@ -2,7 +2,17 @@ import { API_URL } from './config.js';
 
 // Capa de datos. La fuente de verdad es Postgres, a través del webhook de n8n.
 // En el móvil se guarda una copia local para abrir al instante y poder ver lo último sin conexión.
-export const COLORS = ['#5fa8d3', '#7bc47f', '#e0b04f', '#b58bd9', '#4db6ac', '#e58fb0', '#e08a5f', '#9a9a92'];
+// Paleta de proyectos, ordenada por color (sin rojo: ese es el color de Gorekia). Todos los pares
+// se distinguen bien entre sí (distancia de color CIE Lab ≥ 18) y sobre el fondo oscuro.
+export const COLOR_OPTIONS = [
+  { name: 'Naranja', hex: '#ea8a53' }, { name: 'Dorado', hex: '#e3b945' }, { name: 'Amarillo', hex: '#d3dd40' },
+  { name: 'Lima', hex: '#8ad04e' }, { name: 'Verde', hex: '#59c567' }, { name: 'Menta', hex: '#5ccc9f' },
+  { name: 'Turquesa', hex: '#38c7c2' }, { name: 'Cian', hex: '#47b8e1' }, { name: 'Azul cielo', hex: '#6ca9ef' },
+  { name: 'Azul', hex: '#5376ea' }, { name: 'Violeta', hex: '#ac8be4' }, { name: 'Púrpura', hex: '#aa5bc2' },
+  { name: 'Magenta', hex: '#dc6ac5' }, { name: 'Rosa', hex: '#f292bb' }, { name: 'Marrón', hex: '#a68468' },
+  { name: 'Gris azulado', hex: '#7a8aa0' }, { name: 'Gris', hex: '#9a9a92' },
+];
+export const COLORS = COLOR_OPTIONS.map(c => c.hex);
 
 const CACHE_KEY = 'gorekia-projects:cache:v2';
 const TOKEN_KEY = 'gorekia-projects:token';

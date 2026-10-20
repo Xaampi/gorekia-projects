@@ -320,8 +320,8 @@ $('#quick-hours').addEventListener('click', e => {
   if (b) $('#session-form').elements.hours.value = b.dataset.h;
 });
 
-$('#color-swatches').innerHTML = store.COLORS.map((c, i) =>
-  `<label class="swatch" style="--c:${c}"><input type="radio" name="color" value="${c}" ${i === 0 ? 'checked' : ''}><span></span></label>`).join('');
+$('#color-swatches').innerHTML = store.COLOR_OPTIONS.map((c, i) =>
+  `<label class="swatch" style="--c:${c.hex}" title="${esc(c.name)}"><input type="radio" name="color" value="${c.hex}" aria-label="${esc(c.name)}" ${i === 0 ? 'checked' : ''}><span></span></label>`).join('');
 
 $('#project-form').addEventListener('submit', async e => {
   e.preventDefault();
